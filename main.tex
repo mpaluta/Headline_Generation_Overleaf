@@ -2,13 +2,12 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{acl2015}
-%\usepackage{times}
-\usepackage{url}
-%\usepackage{latexsym}
+%\usepackage{url}
 \usepackage{natbib}
 \usepackage{graphicx}
 \usepackage{multicol}
 \usepackage{hyperref}
+\usepackage{threeparttable}
 
 \title{This Time With Feeling: Sentiment to ML Headlines}
 
@@ -37,7 +36,7 @@ Headline generation is primarily approached as a single-document summarization t
 
 Current methods of summarization involve an encoder-decoder architecture \citep{rush2015neural} with a ROUGE evaluation metric \cite{Ayana2017}. ROUGE is a recall-oriented metric to score a generated summary against a reference summary \cite{lin-2004-rouge}. Specific variants include ROUGE-N, scoring the number of common N-grams, and ROUGE-L, scoring the longest common subsequence. Recent refinements to headline generation include adversarial reward systems to combat repetition \cite{DBLP:journals/corr/abs-1902-07110} and applying state-of-the-art Transformer algorithms \cite{DBLP:journals/corr/abs-1901-07786}.
 
-While most work on headline generation focuses exclusively on summarization, two recent papers in other summarization domains explored efforts to add desired sentiment. [Might be worth a brief background on sentiment analysis here if space allows.] One naive approach pre-processed sentences in the body of the corpus to generate sentence-level sentiment scores and simply dropped those sentences that were mismatched from the desired polarity (positive or negative) \cite{DBLP:journals/corr/abs-1802-09426}. Another more elaborate approach for customer review summaries added a discriminator to evaluate the sentiment of generated summaries, looping back to the generator to optimize on this additional criterion \cite{DBLP:journals/corr/HuYLSX17}. 
+While most work on headline generation focuses exclusively on summarization, two recent papers in other summarization domains explored efforts to add desired sentiment. One naive approach pre-processed sentences in the body of the corpus to generate sentence-level sentiment scores that characterize the emotional tone of the text. Sentences that did not match the desired sentiment polarity (positive or negative) were dropped before training the summarization model\cite{DBLP:journals/corr/abs-1802-09426}. Another more elaborate approach for customer review summaries added a discriminator to evaluate the sentiment of generated summaries, looping back to the generator to optimize on this additional criterion \cite{DBLP:journals/corr/HuYLSX17}. 
 
 \section{Methodology}
 We build a Transformer architecture, basing our algorithm off of that of Gavrilov et al \cite{DBLP:journals/corr/abs-1901-07786}, but adding sentiment into the model in the spirit of \cite{DBLP:journals/corr/abs-1802-09426} and \cite{DBLP:journals/corr/HuYLSX17}. We use sentiment-based preprocessing to upsample examples where sentiment matches well between body and headline and downsample those where the match is poor. Our objective is to increase the sentiment match between an article's headline and body while simultaneously obtaining similar ROUGE scores.
@@ -88,25 +87,35 @@ Specifically, we chose to work with the package \href{https://github.com/tensorf
 
 
 
-\subsection{Computation Times}
+\subsection{Resource considerations}
 
-As we ran our algorithm on several different configurations, we decided to take the opportunity to record approximate computation times on various configurations to inform future resource requirements for future work. Our approximate benchmarks can be seen in Table \ref{table:2}
+As we ran our algorithm on several different resource configurations, we decided to take the opportunity to record approximate computation times on various configurations to inform future resource requirements for future work, as some results were nonintuitive. Our approximate benchmarks can be seen in Table \ref{table:2}
 
 \begin{table}[h!]
+\begin{threeparttable}
 \centering
-\begin{tabular}{|p{2cm}|p{2cm}|p{1.5cm}|} 
+\begin{tabular}{|p{2cm}|p{2.2cm}|p{2cm}|} 
  \hline
- Task & Resources & Approx. Computation Time \\ [0.5ex] 
+ Task & Configuration & Approx. Computation Time \\ [0.5ex] 
  \hline
- Vocab Generation & 32 vCPUs & 5 hr 40 min \\ 
- Vocab Generation & 1060 GPU + Ryzen 7 2700 & 40 min \\
- One training step & 32 vCPUs & 3.9 sec \\
- One training step & 1060 GPU + Ryzen 7 2700 & 9.7 sec \\ [1ex]
+ Vocab Generation & CPU-heavy* & 5 hr 40 min \\ 
+ Vocab Generation & Balanced** & 40 min \\
+ One training step & CPU-heavy & 3.9 sec \\
+ One training step & Balanced & 9.7 sec \\ 
+ One training step & GPU-heavy*** & I can do quick test for this later \\[1ex]
  \hline
 \end{tabular}
+\begin{tablenotes}\footnotesize
+\item[*] 32 vCPUs on Google Cloud
+\item[**] Nvidia 1060 GPU and Ryzen 7 2700 (8 cores, 16 threads)
+\item[***] 8 vCPUs and Nvidia Tesla K80 on Google Cloud
+\end{tablenotes}
 \caption{Computational Benchmarks}
+\end{threeparttable}
 \label{table:2}
 \end{table}
+
+Of particular note, we observed that vocabulary generation was a GPU-intensive task and benefited greatly from the addition of a GPU. On the other hand, training was CPU-bottlenecked and even a competitive GPU with 8 vCPUs was outperformed by just 16 vCPUs with no GPU. This result in particular was surprising and led us to perform most of our intensive training on CPU-heavy configurations. It is also worth noting that the two configurations are of approximately equal cost given current Google Cloud pricing.
 
 \section{Discussion}
 \section{Conclusion}
