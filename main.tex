@@ -33,7 +33,7 @@
 The art of good headline writing is not as simple as summarizing relevant details; it requires wit, originality, and a tone that matches the piece. Algorithms have made improvements in summarization, but still struggle with these more nuanced elements. Despite this shortcoming, algorithms could still be useful to an editor, suggesting a number of possible headlines to provide inspiration or for the editor to refine and synthesize into a final product. We propose an incremental improvement in automatic headline generation by incorporating tonal bias to match the underlying content.
 
 \section{Background}
-Headline generation is primarily approached as a single-document summarization task. The nature of headlines makes them relatively more difficult to produce with machine learning than more traditional document summaries. First, headlines tend to be shorter than the average sentence, requiring greater concision than typical ML summaries of one or more sentences. Additionally, they are often written in a short-hand style different from the body text, making extractive summarization theoretically less suitable than the more challenging task of abstractive summarization. 
+Headline generation is primarily approached as a single-document summarization task. The nature of headlines makes them relatively more difficult to produce with machine learning than typical document summaries. First, headlines tend to be shorter than the average sentence, requiring greater concision than typical ML summaries of one or more sentences. Additionally, they are often written in a short-hand style different from the body text, making extractive summarization theoretically less suitable than the more challenging task of abstractive summarization. 
 
 Current methods of summarization involve an encoder-decoder architecture \citep{rush2015neural} with a ROUGE evaluation metric \cite{Ayana2017}. ROUGE is a recall-oriented metric to score a generated summary against a reference summary \cite{lin-2004-rouge}. Specific variants include ROUGE-N, scoring the number of common N-grams, and ROUGE-L, scoring the longest common subsequence. Recent refinements to headline generation include adversarial reward systems to combat repetition \cite{DBLP:journals/corr/abs-1902-07110} and applying state-of-the-art Transformer algorithms \cite{DBLP:journals/corr/abs-1901-07786}.
 
@@ -84,7 +84,30 @@ Specifically, we chose to work with the package \href{https://github.com/tensorf
 \end{itemize}
 
 \section{Results}
-\subsection{Subsection template if needed}
+\subsection{ROUGE and sentiment scores}
+
+
+
+\subsection{Computation Times}
+
+As we ran our algorithm on several different configurations, we decided to take the opportunity to record approximate computation times on various configurations to inform future resource requirements for future work. Our approximate benchmarks can be seen in Table \ref{table:2}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|p{2cm}|p{2cm}|p{1.5cm}|} 
+ \hline
+ Task & Resources & Approx. Computation Time \\ [0.5ex] 
+ \hline
+ Vocab Generation & 32 vCPUs & 5 hr 40 min \\ 
+ Vocab Generation & 1060 GPU + Ryzen 7 2700 & 40 min \\
+ One training step & 32 vCPUs & 3.9 sec \\
+ One training step & 1060 GPU + Ryzen 7 2700 & 9.7 sec \\ [1ex]
+ \hline
+\end{tabular}
+\caption{Computational Benchmarks}
+\label{table:2}
+\end{table}
+
 \section{Discussion}
 \section{Conclusion}
 
