@@ -1,20 +1,44 @@
-\documentclass{article}
+\documentclass[11pt]{article}
+
 \usepackage[utf8]{inputenc}
-
-\title{Headline Generation}
-\author{Ben Arnoldy, Mark Paluta}
-\date{July 2019}
-
+\usepackage{acl2015}
+%\usepackage{times}
+%\usepackage{url}
+%\usepackage{latexsym}
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{multicol}
+
+\title{This Time With Feeling: Sentiment to ML Headlines}
+
+\author{Ben Arnoldy \\
+  University of California, Berkeley \\
+  {\tt arnoldyb@berkeley.edu} \\\And
+  Mark Paluta \\
+  University of California, Berkeley \\
+  {\tt mpaluta@berkeley.edu} \\}
+  
+\date{July 2019}
 
 \begin{document}
 
 \maketitle
 
+\begin{abstract}
+    
+\end{abstract}
+
 \section{Introduction}
-There is a theory which states that if ever anyone discovers exactly what the Universe is for and why it is here, it will instantly disappear and be replaced by something even more bizarre and inexplicable.
-There is another theory which states that this has already happened.
+The art of good headline generation is not as simple as summarizing relevant details; it requires wit, originality, and a tone that matches the piece. Algorithms have made improvements in summarization, but still struggle with these more nuanced elements. Despite this shortcoming, algorithms can still be useful to an editor, suggesting a number of possible headlines to provide inspiration or to refine. We propose an incremental improvement in automatic headline generation by incorporating tonal bias to match the underlying content.
+\section{Related Work}
+Current approaches to the task involve a decoder-encoder architecture (1) with a ROUGE evaluation metric (2). Recent refinements include adversarial reward systems to combat repetition (3) and applying cutting-edge Transformer algorithms (4).
+While most work on headline generation focuses exclusively on summarization, two recent papers explored efforts to add sentiment. One naive approach simply dropped sentences with unwanted sentiment polarity from the input (5). Another approach added a discriminator to evaluate the sentiment of generated customer review summaries, looping back to the generator to optimize (6). 
+\section{Methodology}
+We propose building a Transformer algorithm along the lines of Gavrilov et al (4), but adding sentiment into the model, possibly through a discriminator as shown by Hu et al (6). Following Gavrilov(4), we will use an encoder-decoder architecture, Adam optimizer, and the set of specific hyperparameters outlined by Gavrilov(4) as our baseline. We will experiment with polarity functions to capture various types of sentiment. We will use the annotated Gigaword dataset. 
+	To test the quality of the generated headlines, we will begin with the ROUGE metric (7). We will then employ a novel metric by combining ROUGE with the Mean Squared Error of the difference between the sentiment scores of the input document and generated headline. Our goal is to learn whether training with sentimentality in the loop improves overall results through better handling of sentimentality and tone.
+\section{Experiments}
+\subsection{Subsection template if needed}
+\section{Conclusions}
 
 \begin{figure}[h!]
 \centering
@@ -23,9 +47,22 @@ There is another theory which states that this has already happened.
 \label{fig:universe}
 \end{figure}
 
-\section{Conclusion}
-``I always thought something was fundamentally wrong with the universe'' \citep{adams1995hitchhiker}
+URL example
+\url{http://acl2015.org/publication.html}.
+
+"citing Rush here" \citep{rush2015neural}
+"citing Ayana here" \cite{Ayana2017}
+"citing Peng Xu here" \cite{DBLP:journals/corr/abs-1902-07110}
+"citing Gavrilov here" \cite{DBLP:journals/corr/abs-1901-07786}
+"citing Chaudari here" \cite{DBLP:journals/corr/abs-1802-09426}
+"citing Zhiting Hu here" \cite{DBLP:journals/corr/HuYLSX17}
+"citing Lin here" \cite{lin-2004-rouge}
+"citing Attention is all you Need here" \cite{DBLP:journals/corr/VaswaniSPUJGKP17}
 
 \bibliographystyle{plain}
 \bibliography{references}
 \end{document}
+
+
+
+
