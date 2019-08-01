@@ -45,25 +45,27 @@ While most work on headline generation focuses exclusively on summarization, two
 We build a Universal Transformer architecture, basing our algorithm off of that of Gavrilov et al \cite{DBLP:journals/corr/abs-1901-07786}, but adding sentiment into the model in the spirit of Chaudhari   \cite{DBLP:journals/corr/abs-1802-09426} and Hu \cite{DBLP:journals/corr/HuYLSX17}. We use sentiment-based preprocessing to upsample examples where sentiment matches well between body and headline and downsample those where the match is poor. Our objective is to increase the sentiment match between an article's headline and body while simultaneously obtaining similar ROUGE scores.
 
 \subsection{Workflow}
-[Seeing how this looks for now]
+
+The workflow we defined to pre-process, train, and evaluate our data can be seen in algorithm \ref{alg:1}. Note that the algorithm can be parallelized across three virtual machines for the three filtering options.
+
+Not married to this format, but getting the content in for now.
 
 \begin{algorithm}[H]
 \SetAlgoLined
-\KwResult{Write here the result }
- metadata generation\;
- randomize train-dev-test split\;
- (optional) sentiment preprocessing\;
- (optional) random downsampling\;
- \While{While condition}{
-  instructions\;
-  \eIf{condition}{
-   instructions1\;
-   instructions2\;
-   }{
-   instructions3\;
-  }
+ \For{filtering in (none, sentiment, random)}{
+    1: pre-processing and metadata generation\;
+    2: randomize train-dev-test split\;
+    3: \If{filtering = sentiment}{
+        4: sentiment-based downsampling\;}
+    5: \If{filtering = sentiment}{
+        6: random downsampling\;}
+    7: train on training set\;
+    8: decode dev or test set\;
+    9: score ROUGE metrics
+    10: score sentiment metric\;
  }
- \caption{How to write algorithms}
+ \caption{End-to-end pipeline}
+\label{alg:1}
 \end{algorithm}
 
 \subsection{Universal Transformer Architecture}
@@ -123,9 +125,32 @@ Specifically, we chose to work with the package \href{https://github.com/tensorf
 \end{itemize}
 
 \section{Results}
+\subsection{Decoder}
+
+Unfortunately, the decoder 
+
+Example
+
+\begin{table}[h!]
+\centering
+\begin{tiny}
+\begin{tabular}{|p{7cm}|} 
+ \hline
+ \textbf{Input:} When Democratic Rep. Rashida Tlaib accused Republican Rep. Mark Meadows of racism earlier this year, one of his "best friends," House Oversight Committee chairman and Democratic Rep. Elijah Cummings immediately jumped to his defense. When Cummings was attacked on similar grounds by President Donald Trump over the weekend, it took a bit longer for Meadows to publicly repay the favor. On Saturday and Sunday, Trump went after Cummings on Twitter, calling the veteran Democratic lawmaker a "racist" and his district a "disgusting, rat and rodent infested mess." Trump's comments hung in the air for days, sparking yet another conversation about the President's race-focused rhetoric. Republicans largely stayed silent, including Meadows, whose warm relationship with Cummings prompted questions about his reticence to defend his friend. \\ [0.5ex] 
+ \hline
+ \textbf{Output:} Fatah Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Fatah Fatah Fatah Fatah Fatah Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Boys Mitch Mitch Mitch Fatah Fatah Fatah Boys Boys Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Fatah god god god god god god god god god god god Mitch Mitch Mitch god Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch  \\ 
+ \hline
+\end{tabular}
+\end{tiny}
+\caption{Example Output}
+\label{table:3}
+\end{table}
+
 \subsection{ROUGE and sentiment scores}
 
-[Possibly insert example outputs.]
+insert table for ROUGE
+
+Commentary about how we can't evalute sentiment due to decoder
 
 \subsection{Resource considerations}
 
