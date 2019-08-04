@@ -27,6 +27,8 @@
 \maketitle
 
 \begin{abstract}
+
+In this paper we propose a strategy for sentiment-based preprocessing on the task of headline generation. We seek to show that training on sentiment-matched headlines and bodies would result in similar ROUGE scores while simultaneously improving sentiment metrics. Due to resource constraints, we are unable to train to convergence, but our preliminary results support our hypotheses. Training a Universal Transformer on two equivalent data set sizes, one sentiment-matched and one not, we see no noteworthy effect size in ROUGE while seeing improvement of 9\% in our sentiment match between the generated headline and the article lede (first paragraph).
     
 \end{abstract}
 
@@ -43,11 +45,14 @@ While most work on headline generation focuses exclusively on summarization, two
 \section{Methodology}
 
 \subsection{Objective}
-We build a Universal Transformer architecture, initially basing our algorithm off of that of Gavrilov et al \cite{DBLP:journals/corr/abs-1901-07786}, but adding sentiment into the model in the spirit of Chaudhari \cite{DBLP:journals/corr/abs-1802-09426} and Hu \cite{DBLP:journals/corr/HuYLSX17}. To test the effectiveness of adding sentiment, we train an experimental and a control model.
+We build a Universal Transformer architecture, initially basing our work off of that of Gavrilov et al \cite{DBLP:journals/corr/abs-1901-07786}, but adding sentiment into the model in the spirit of Chaudhari \cite{DBLP:journals/corr/abs-1802-09426} and Hu \cite{DBLP:journals/corr/HuYLSX17}. To test the effectiveness of adding sentiment, we train an experimental and a control model.
 
-The experimental model trains on the subset of the train dataset where the headline and the summary (i.e. lede) have the same sentiment polarity. This requirement results in a reduction in this model's training set from 990,858 articles to 749,745. To ensure that the control model trains on a comparable amount of data, we reduce the control dataset by randomly dropping articles by the same amount, 990,858 down to 749,745. 
+The experimental model trains on the subset of the train dataset where the headline and the first paragraph (i.e. lede) have the same sentiment polarity. This preprocessing results in a reduction in this model's training set from 990,858 articles to 749,745. To ensure that the control model trains on a comparable amount of data, we reduce the control dataset by randomly dropping articles down to 749,745. 
 
-With this approach modeled on Chaudari\cite{DBLP:journals/corr/abs-1802-09426}, our hypothesis is that the experimental model will show improved sentiment matching scores over those from the control model. We evaluate sentiment matching by measuring how many generated headlines have the same sentiment polarity as their underlying body texts, as well as measuring difference in sentiment scores between the generated and label headlines. We also compare ROUGE scores to see whether this method of improving sentiment matching comes at a cost or benefit to ROUGE score performance. 
+With this approach modeled on Chaudari\cite{DBLP:journals/corr/abs-1802-09426}, our hypothesis is that the experimental model will show improved sentiment matching scores over those from the control model. We evaluate sentiment matching by measuring how many generated headlines have the same sentiment polarity as the first paragraph and, separately, the label headline. We also compare ROUGE scores to see whether this method of improving sentiment matching comes at a cost or benefit to ROUGE score performance.
+
+\subsection{Corpus}
+We use the \href{https://catalog.ldc.upenn.edu/LDC2008T19}{New York Times annotated corpus} to match Gavrilov et al. This contains 1.8 million New York Times articles spanning from 1987 to 2006. Like Gavrilov, we filtered out obituaries and retained only articles where $20 \le wordcount \le 2000$ and $3 \le headline length \le 15$. We were left with 1,415,511 articles, which we then split along 70:10:20 proportions into train, dev, and test datasets. We also remove duplicative first paragraphs that occur in many of the articles. 
 
 \subsection{Workflow}
 
@@ -69,25 +74,26 @@ After preprocessing, the remaining pipeline consists of training, decoding on de
   \label{figure:decode}
 \end{figure*}
 
-\subsection{Implementation}
-Specifically, we chose to work with the package \href{https://github.com/tensorflow/tensor2tensor}{\texttt{tensor2tensor}}. This package was developed by the Google Brain team and is designed for furthering research on a variety of natural language processing problems\cite{vaswani-etal-2018-tensor2tensor}. We began by replicating the CNN/Daily Mail text summarization problem. We then adapted the architecture to accommodate a new problem of summarization, specifically generating headlines rather than key points, and using the New York Times annotated corpus rather than CNN/Daily Mail. We initially sought to imitate Gavrilov et al's architecture and results before embarking on our own modifications. The specific adaptations required in \texttt{tensor2tensor} to do this included:
+\subsection{Implementation of Universal Transformer Architecture}
+Specifically, we chose to work with the package \href{https://github.com/tensorflow/tensor2tensor}{\texttt{tensor2tensor}}. This package was developed by the Google Brain team and is designed for furthering research on a variety of natural language processing problems\cite{vaswani-etal-2018-tensor2tensor}. Our explorations indicated that this was the most applicable and flexible package for the task.
+
+We began by replicating the CNN/Daily Mail text summarization problem. We then adapted the architecture to accommodate a new problem of summarization, specifically generating headlines rather than key points, and using the New York Times annotated corpus rather than CNN/Daily Mail. We initially sought to imitate Gavrilov's architecture and results before embarking on our own modifications. This setup included an encoder-decoder architecture, AdamW optimizer, and any specific hyperparameters outlined by Gavrilov, choosing \texttt{tensor2tensor} defaults for anything not specified. Specific adaptations we made in \texttt{tensor2tensor} included:
 
 \begin{itemize}
-    \item Preprocessing of the New York Times corpus for \texttt{tensor2tensor} ingestion
+    \item Preprocess the New York Times corpus to prepare for \texttt{tensor2tensor} ingestion
     \item Define problem \texttt{Gavrilov} inheriting \texttt{Text2TextProblem}
     \item Apply a subword tokenizer to imitate Gavrilov et al's BPE tokenization
     \item Override a variety of default Universal Transformer hyperparameters as defined in Table \ref{table:hparams}
 \end{itemize}
 
-\subsection{Universal Transformer Architecture}
-We use an encoder-decoder architecture, AdamW optimizer, and the set of specific hyperparameters outlined by Gavrilov et al \cite{DBLP:journals/corr/abs-1901-07786} as our baseline. Noteworthy parameters are listed in Table \ref{table:hparams}.
+Noteworthy parameters are listed in Table \ref{table:hparams}. We also list \texttt{tensor2tensor} base parameters for the Universal Transformer architecture.
 
 \begin{table}[h!]
 \centering
 \begin{small}
 \begin{tabular}{|c |c |c|} 
  \hline
- Hyperparameter & Gavrilov & \_base \\ [0.5ex] 
+ Hyperparameter & Gavrilov & base \\ [0.5ex] 
  \hline
  Hidden layer size & 1024 & 1024 \\ 
  Filter size & 4096 & 4096 \\
@@ -107,36 +113,62 @@ We use an encoder-decoder architecture, AdamW optimizer, and the set of specific
 \label{table:hparams}
 \end{table}
 
-\subsection{Corpus}
-We use the \href{https://catalog.ldc.upenn.edu/LDC2008T19}{New York Times annotated corpus} to match Gavrilov. This contains 1.8 million New York Times articles spanning from 1987 to 2006. Like Gavrilov, we filtered out obituaries and kept articles where $20 \le wordcount \le 2000$ and $3 \le headline length \le 15$. We were left with 1,415,511 articles, which we then split along 70:10:20 proportions into train, dev, and test datasets. We also remove duplicative first paragraphs that occur in many of the articles. 
+\subsection{Decoder}
+Due to the cutting-edge nature of \texttt{tensor2tensor} including limited documentation, the decoder posed a number of initial challenges for us. As mentioned we initially modeled after Gavrilov et al's parameters. However, despite training to 25,000 steps, and numerous experiments adjusting the beam-size, $\alpha$ (length normalization), and the \texttt{decode\_variable} parameter, we almost always got empty output from the decoder. We even adjusted from inputting 10 paragraphs to 3 and retrained entirely to try to downscope the problem and allow for faster convergence, but still encountered the problem. On rare occasions, we were able to get a few words repeated dozens of times. It was unclear to us the reason for our largely blank decoder output, but we suspect it was either a problem in our architecture construction or insufficient training time. Our dev data loss curve also flatlined all the way to 25,000 steps despite decrease in training data loss, which did not bode well.
+
+As a result, we elected to simply try the baseline hyperparameters from \texttt{tensor2tensor}. This approach immediately resulted in notably better performance as we will elaborate on in the results section, so we abandoned trying to imitate Gavrilov et al. Our final chosen parameters for the decoder were $\alpha=0.6$ and $beams=4$ per Vaswani et al \cite{DBLP:journals/corr/VaswaniSPUJGKP17}, and \texttt{decode\_variable} $=100$ based on the default setting.
 
 \subsection{Sentiment analysis}
-We use a positive-negative polarity function as most research on sentiment is a simple positive-negative scale and we wish to leverage existing work. Following a model annotated by Speer\cite{RacistAI}, we take Liu's opinion lexicon\cite{Hu:2004:MSC:1014052.1014073} -- a list of around 6,800 words that are labeled either positive or negative -- and embed the lexicon's words in pre-trained GloVe embeddings. These embeddings and their [0,1] labels are used to train a logistic regression model that returns the log probability of a new word being positive and the log probability of it being negative. The negative probability is subtracted from the positive to arrive at a score; positive scores indicate positive associations and vice versa. To score an entire headline, we sum the individual scores of all the words in the headline and take an average. We construct a filter to remove articles where the polarity of the headline and its short summary differ, as shown in Figure \ref{figure:preprocess} ///write it as an xor///.
+We use a positive-negative polarity function as most research on sentiment is a simple positive-negative scale and we wish to leverage existing work. Following a model produced and annotated by Speer\cite{RacistAI}, we take Liu's opinion lexicon\cite{Hu:2004:MSC:1014052.1014073} -- a list of around 6,800 words that are labeled either positive or negative -- and embed the lexicon's words in pre-trained GloVe embeddings. These embeddings and their [0,1] labels are used to train a logistic regression model that returns the log probability of a new word being positive and the log probability of it being negative. The negative probability is subtracted from the positive to arrive at a score; positive scores indicate positive associations and vice versa. To score an entire headline, we take a bag of words approach and sum the individual scores of all the words in the headline and take an average. We construct a filter to remove articles where the polarity of the headline and its short summary differ.
 
-\subsection{Decoder}
-Due to the cutting-edge nature of \texttt{tensor2tensor} including limited documentation, the decoder posed a number of initial challenges for us. As mentioned we initially modeled after Gavrilov et al's parameters. However, despite training to 25,000 steps, adjusting the beam-size between 1 and 10, $\alpha$ (length normalization) between .01 and 100, and the \texttt{decode\_variable} parameter between 1 and 100, we almost always got empty output from the decoder. We even adjusted from inputting 10 paragraphs to 3 and retrained entirely to try to downscope the problem and allow for faster convergence, but still encountered the problem. On rare occasions, we were able to get a few words repeated dozens of times. It was unclear to us the reason for our largely blank decoder output, but we suspect it was either a problem in our architecture construction or insufficient training time.
+\subsection{Evaluation} To test the quality of generated headlines, we ran the first three paragraphs of the body text of the test set articles through the decoder to generate headlines to evaluate the quality of the sentiment-filtered model and the control model. We chose the first three paragraphs after first trying to take the first 10 paragraphs and finding that training and decoding would take too long. We arrived at three by relying on domain knowledge. One of the authors has worked for two decades as a journalist; in traditional news-writing, the first three paragraphs usually contain all the key facts and a "nut graf" that lays out why the story is important. 
 
-As a result, / ... /
+Our evaluation included both the standard ROUGE metrics used for summarization tasks as well as two measures of sentiment we designed. The decoding proved computationally intensive and we had to evaluate on a limited test set of 500 examples instead of the full ~280,000 as we originally intended. For more information on resource consumption, see Appendix A.
 
-\subsection{Evaluation}
-To test the quality of generated headlines, we ran the top portion of the body text in all of the test dataset articles through the decoder to generate headlines to evaluate the quality of the sentiment-filtered model and the control model. Our evaluation included both the standard ROUGE metrics used for summarization tasks as well as two measures of sentiment we designed.
+To compare the two models' performance on sentiment, we first calculate the percentage of generated headlines that match the polarity of the first paragraph of the body text. We call this \%-match-lede, and we treat it as an expression of each model's ability to generate headlines that fit the sentiment of their articles. We also calculate the percentage of generated headlines that match the polarity of the label headline. We call this \%-match-hede, and we treat it as an expression of each model's ability to match the sentiment of the gold standard headline. 
 
-To compare the two models' performance on sentiment, we first calculate the percentage of generated headlines that match the polarity of the input body text. This percentage, which captures each model's ability to generate headlines that fit the sentiment of the their articles, is calculated as an f1-score where the headline's sentiment is the prediction for the true sentiment of the body. We expect that the preprocess filtering by sentiment will result in a trained model that produces higher f1-scores. Second, we subtract the difference in the predicted headline sentiment from the label headline sentiment and take an average across the dataset. This metric captures how well the models are able to generate headlines that match the sentiment of the label headlines. We expect that the experimental model will generate a smaller average sentiment differential than the control model, indicating a better sentiment match between predicted and label headlines.  
+We expect that the preprocess filtering by sentiment will result in a trained model that produces higher \%-match-lede and \%-match-hede scores. 
+
+We developed and ultimately discarded other possible sentiment metrics including f1-scores and differences in raw sentiment scores between generated and label headlines. We discarded the former as less understandable than our metrics and discarded the latter as misleading in their precision given the simplistic nature of the sentiment scoring model.
+
+We also compare to a baseline algorithm of the first eight words of the article. This is based on an average headline word count of 7.52 in our training data.
 
 \section{Results}
 
-An example input output pairing is shown in Table \ref{table:example}.
-
-//// Replace with better output ////
+Three example input-output pairings are shown in Table \ref{table:example}.
 
 \begin{table}[h!]
 \centering
 \begin{tiny}
 \begin{tabular}{|p{7cm}|} 
+
  \hline
- \textbf{Input:} When Democratic Rep. Rashida Tlaib accused Republican Rep. Mark Meadows of racism earlier this year, one of his "best friends," House Oversight Committee chairman and Democratic Rep. Elijah Cummings immediately jumped to his defense. When Cummings was attacked on similar grounds by President Donald Trump over the weekend, it took a bit longer for Meadows to publicly repay the favor. On Saturday and Sunday, Trump went after Cummings on Twitter, calling the veteran Democratic lawmaker a "racist" and his district a "disgusting, rat and rodent infested mess." Trump's comments hung in the air for days, sparking yet another conversation about the President's race-focused rhetoric. Republicans largely stayed silent, including Meadows, whose warm relationship with Cummings prompted questions about his reticence to defend his friend. \\ [0.5ex] 
+ \textbf{Input:}The Bush administration asked a federal claims court today to seal documents relating to hundreds of claims that a mercury-based preservative in vaccines, thimerosal, has caused autism and other neurological disorders in children. Lawyers for the Justice Department asked for the protective order on behalf of Tommy G. Thompson, the secretary of health and human services, whose department administers a government fund to compensate people injured by vaccines. A department spokesman said that the law creating the fund gives the secretary control over what information is released and that the government was merely trying to preserve that right.
+ \\ [0.5ex] 
  \hline
- \textbf{Output:} Fatah Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Fatah Fatah Fatah Fatah Fatah Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Boys Mitch Mitch Mitch Fatah Fatah Fatah Boys Boys Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Fatah Fatah Fatah Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Mitch Mitch Mitch Mitch Mitch Mitch Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Boys Boys Boys Mitch Mitch Boys Boys Fatah god god god god god god god god god god god Mitch Mitch Mitch god Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch Mitch  \\ 
+ \textbf{Output - Baseline:}The Bush administration asked a federal claims court
+ 
+ \textbf{Output - Control:}U.S. Appeals Court Upholds Tobacco Ban
+
+ \textbf{Output - Experiment:}U.S. Says It's Not to Pay for AIDS \\ 
+ \hline
+ \hline
+ \textbf{Input:} To the Editor: If it were decided that the human embryos whose destinies are being weighed (letters, July 18) are indeed living persons, I would hope that a way could be found to give meaning to those lives. I would find greater meaning in having my life used in research that might help to save other lives than in being confined to a slow, purposeless death in cold storage. NANCY S. DORFMAN  Belmont, Mass., July 18, 2001 \\ [0.5ex] 
+ \hline
+ \textbf{Output - Baseline:}To the Editor: If it were decided that
+ 
+ \textbf{Output - Control:}What's Time to Do It
+
+ \textbf{Output - Experiment:}The Way We Live Now \\ 
+ \hline
+ \hline
+ \textbf{Input:} The Rangers' season could hinge on the magnetic resonance imaging test that Pavel Bure is scheduled to have today. Bure, who is considered by many the best pure goal scorer in the National Hockey League, was injured when his left knee struck the knee of the Sabres' Curtis Brown nine minutes into the second period of the Rangers' 4-1 loss to the Buffalo Sabres last night at Madison Square Garden. For the second time in less than 24 hours, the Rangers -- who lost, 3-2, in overtime in Philadelphia on Thursday night -- failed to move above .500 for the first time since opening night. \\ [0.5ex] 
+ \hline
+ \textbf{Output - Baseline:}The Rangers' season could hinge on the magnetic
+ 
+ \textbf{Output - Control:}Rangers' Defense Is Back
+
+ \textbf{Output - Experiment:}Devils' Defense \\ 
  \hline
 \end{tabular}
 \end{tiny}
@@ -144,11 +176,7 @@ An example input output pairing is shown in Table \ref{table:example}.
 \label{table:example}
 \end{table}
 
-\subsection{ROUGE and sentiment scores}
-
 We ran our algorithm for 25,000 steps as defined within \texttt{tensor2tensor}. For reference, the package recommended running machine translation tasks for approximately 300,000 steps to converge and obtain state-of-the-art BLEU scores. We were unable to run fully to convergence due to resource constraints. For further information about computation times, see Appendix A. Our loss curves are shown in Figure \ref{figure:loss}. Note that due to resource constraints we were also unable to continue evaluation on our dev data past 4000 steps due to the high computational cost of evaluation. We do note that the loss on our dev data was decreasing for the interval on which we were able to evaluate, which was an early indication that the algorithm was generalizing beyond the training data and not simply overfitting.
-
-Decoding was also a computationally intensive process. 
 
 \begin{figure}
   \centering
@@ -158,25 +186,22 @@ Decoding was also a computationally intensive process.
 \end{figure}
 
 Given the decoder challenges, we abandoned the Universal Transformer hyperparameters outlined in Gavrilov and instead worked with preset Universal Transformer hyperparameters provided in Tensor2Tensor. This resulted in decoder output good enough to obtain meaningful ROUGE metrics and sentiment metrics. 
-////SHOW A BETTER DECODER OUTPUT/////
 
-Results can be seen in Table \ref{table:results}
-
- \texttt{tensor2tensor}. This is estimated by [maybe some math here]
+Results from our Universal Transformer and Gavrilov's reported scores can be seen in Table \ref{table:results}. 
 
 \begin{table*}[h!]
 \begin{threeparttable}
 \centering
 \begin{small}
-\begin{tabular}{|p{7cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{1.3cm}|}
+\begin{tabular}{|p{7cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{.8cm}|p{1cm}|p{1cm}|}
  \hline
- Model & R-1-f & R-1-r & R-2-f & R-2-r & R-L-f & R-L-r & \%-match \\
+ Model & R-1-f & R-1-r & R-2-f & R-2-r & R-L-f & R-L-r & \%-match-lede & \%-match-hede \\
  \hline
- Gavrilov Universal Transformer - unsmoothed & \textbf{26.86} & 25.33 & \textbf{13.48} & \textbf{13.01} & \textbf{24.84} & 24.38 & - \\ [0.5ex] 
- Gavrilov baseline (first sentence) & 11.64 & \textbf{34.67} & 2.28 & 7.43 & 7.19 & \textbf{31.39} & - \\ 
- Our baseline (first 8 words) & 7.74 & 8.39 & 1.67 & 1.69 & 7.12 & 8.16 & 76 \\
- Our Universal Transformer - Sentiment-filtered & ?$^{*}$ & ?$^{*}$ & ?$^{*}$ & ?$^{*}$ & ?$^{*}$ & ?$^{*}$ & ?$^{*}$ \\
- Our Universal Transformer - Randomly filtered & 10.28$^{*}$ & 9.54$^{*}$ & 6.18$^{*}$ & 5.89$^{*}$ & 9.73$^{*}$ & 9.50$^{*}$ & 79$^{*}$ \\ [1ex]
+ Gavrilov Universal Transformer - unsmoothed & \textbf{26.86} & 25.33 & \textbf{13.48} & \textbf{13.01} & \textbf{24.84} & 24.38 & - & - \\ [0.5ex] 
+ Gavrilov baseline (first sentence) & 11.64 & \textbf{34.67} & 2.28 & 7.43 & 7.19 & \textbf{31.39} & - & - \\ 
+ Our baseline (first 8 words) & 7.74 & 8.39 & 1.67 & 1.69 & 7.12 & 8.16 & 76 & 72.2\\
+ Our Universal Transformer - Sentiment-filtered & 10.39$^{*}$ & 9.62$^{*}$ & 6.33$^{*}$ & 5.86$^{*}$ & 9.30$^{*}$ & 9.54$^{*}$ & \textbf{91}$^{*}$ & \textbf{74}$^{*}$ \\
+ Our Universal Transformer - Randomly filtered & 10.44$^{*}$ & 9.69$^{*}$ & 6.21$^{*}$ & 5.94$^{*}$ & 9.87$^{*}$ & 9.64$^{*}$ & 80$^{*}$ & 71$^{*}$ \\ [1ex]
  \hline
 \end{tabular}
 \end{small}
@@ -190,15 +215,22 @@ Results can be seen in Table \ref{table:results}
 
 \section{Discussion}
 
-/////As expected, we saw small improvements in both the ROUGE metrics and the sentiment metrics with the experimental model. This signals that the development of more complex integrations of sentiment into headline summarization models would be a worthwhile avenue for future research. //////
+As expected, we saw similar ROUGE metrics across the board and slightly improved sentiment metrics for the experimental model. This signals that the development of more complex integrations of sentiment into headline summarization models would be a worthwhile avenue for future research.
 
-Although our methodology did show an improvement in our sentiment metric, we also note that this experiment required throwing out training data. In any real-world headline generation application, it is unlikely that one would want to throw out training data due. To measure the effect on ROUGE of throwing out this data, we initially wanted to also run a third model with no downsampling after the initial filtering. This would demonstrate the loss in ROUGE due to decreased training set size, but we did not have enough time to train this third model.
+We also observe that Gavrilov's first sentence baseline exhibits better ROUGE recall than our first eight words. We attribute this to the fact that the average journalistic first sentence is substantially longer than eight words and thus their baseline is practically guaranteed to recall more of the headline's words than our baseline.
 
-Discuss theories of what we are seeing in specific input-output example
+Although our methodology did show an improvement in our sentiment metrics, we also note that this experiment required throwing out training data. In any real-world headline generation application, it is unlikely that one would want to throw out training data if the primary task is summarization. To measure the effect on ROUGE of throwing out this data, we initially wanted to also run a third model with no downsampling after the initial filtering. This would additionally demonstrate the loss in ROUGE due to decreased training set size, but we did not have enough time to pursue this third model.
+
+The sample generated headlines in Table \ref{table:example} show both the limitations of undertraining headline summarization models and points to some promising improvements with sentiment matching. In all three of these examples, both the control and the experiment models generate factually incorrect headlines. However, we observe that the experiment model's headlines in the first two examples are more reflective of the input text sentiment. In the first example, the input text dwells on childhood diseases, efforts to seal documents, and a federal agency wielding its control over information. 
+
+The control headline misses the tone with the choice of "upholds" as the key verb, while the experiment headline zeros in on the negative phrasing "not to pay." In the second example, an intense input text that grapples with the meaning of life gets the more emotionally resonate headline from the experiment model -- "The Way We Live Now" -- than the control -- "What's Time to Do It." 
+
+The third example highlights one of the pitfalls of this simplistic use of sentiment scoring. The input describes the Rangers, a pro-hockey team, losing a game and facing the loss of a key player due to injury. The experimental model's headline substitutes an entirely different team -- the Devils -- potentially in an effort to match the negative polarity of the input with a team name that has negative sentiment (for reasons beyond sports). We saw other examples of the wrong teams being placed in the experiment model's headlines, including dropping the Yankees in favor of the Mets. Apparently, after being trained on GloVe embeddings, the sentiment model ranked the Yankees extremely negatively (-8.04) compared to the Mets (-4.49) and the model was possibly trying to temper the negativity of the headline.  
+
+Further work could also consider a more sophisticated sentiment analysis than a bag of words approach. We chose to use a simple approach for proof of concept, but one idea for a next iteration could be the \href{https://nlp.stanford.edu/sentiment/index.html}{Stanford Sentiment Treebank}. Rather than throw out training data, another approach could be to utilize a compound loss function incorporating sentiment mismatch in addition to perplexity. A final consideration could be more filtering of undesirable data on the front-end. We noticed for example that there were some "articles" that were simply stock market reportings, which are not reflective of the average newspaper headline.
 
 \section{Conclusion}
-
-
+In this study, we observe preliminary results that indicate that sentiment-matched newspaper headline and bodies may yield better sentiment properties during headline generation, while sacrificing little in the way of ROUGE when compared to a similar data set size without sentiment match. However, our conclusions are drawn before convergence and on a limited test set, so we recommend follow-on research confirm these trends continue. We also recognize that throwing away training data may yield lower ROUGE scores, so we additionally recommend research on a data set without any downsampling to understand the effect of throwing out this data.
 
 \section{Materials}
 Our materials for this project can be found at the following link:
@@ -220,22 +252,27 @@ Our materials for this project can be found at the following link:
 
 \section{Resource Considerations}
 
-As we ran our algorithm on several different resource configurations, we decided to take the opportunity to record approximate computation times on various configurations to inform future resource requirements for future work, as some results were nonintuitive. Our approximate benchmarks can be seen in Table \ref{table:hardware}
+As we ran our algorithm on several different resource configurations, we decided to take the opportunity to record approximate computation times on various configurations to inform future resource requirements for future work, as some results were nonintuitive. Our approximate benchmarks can be seen in Table 4.
 
 \begin{table}[h!]
 \begin{threeparttable}
 \centering
 \begin{small}
-\begin{tabular}{|p{2cm}|p{2.2cm}|p{2cm}|} 
+\begin{tabular}{|p{2.6cm}|p{2.2cm}|p{2cm}|} 
  \hline
  Task & Configuration & Approx. Computation Time \\ [0.5ex] 
  \hline\hline
  Vocab Generation & CPU-heavy$^{1}$ & 5 hr 40 min \\ 
- Vocab Generation & Balanced$^{2}$ & 40 min \\
+  & Balanced$^{2}$ & 40 min \\
+  & GPU-heavy$^{3}$ & ? \\
  \hline
  One training step & CPU-heavy & 3.9 sec \\
- One training step & Balanced & 9.7 sec \\ 
- One training step & GPU-heavy$^{3}$ & I can do quick test for this later \\[1ex]
+  & Balanced & 9.7 sec \\ 
+  & GPU-heavy & 12.7 sec \\[1ex]
+ \hline
+ Decode one file & CPU-heavy & 1 min \\
+  & Balanced & ? \\ 
+  & GPU-heavy & 1 min 30 sec  \\[1ex]
  \hline
 \end{tabular}
 \end{small}
@@ -249,7 +286,7 @@ As we ran our algorithm on several different resource configurations, we decided
 \label{table:hardware}
 \end{table}
 
-Of particular note, we observed that vocabulary generation was a GPU-intensive task and benefited greatly from the addition of a GPU. On the other hand, training was CPU-bottlenecked and even a competitive GPU with 8 vCPUs was outperformed by just 16 vCPUs with no GPU. This result in particular was surprising and led us to perform most of our intensive training on CPU-heavy configurations. It is also worth noting that the two configurations are of approximately equal cost given current Google Cloud pricing.
+Of particular note, we observed that vocabulary generation was a GPU-intensive task and benefited greatly from the addition of a GPU. On the other hand, training was CPU-bottlenecked and even a competitive GPU with eight vCPUs was outperformed by just 16 vCPUs with no GPU. This result in particular was surprising and led us to perform most of our intensive training on CPU-heavy configurations. Decoding time appeared to be slow on both CPU and GPU configurations.
 
 \end{appendices}
 
